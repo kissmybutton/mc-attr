@@ -18,17 +18,43 @@ const COMPOSITES = {
   strokeDasharray: { svgName: "stroke-dasharray", parts: ["dash", "gap"], separator: " " },
 };
 
+// Regex to extract all numbers from a path string
+const PATH_NUM_RE = /-?[\d.]+(?:e[+-]?\d+)?/gi;
+
+// Extract the "template" (letters + structure) and numbers from a path string
+function parsePath(d) {
+  const nums = [];
+  const template = d.replace(PATH_NUM_RE, (match) => {
+    nums.push(parseFloat(match));
+    return "\0";
+  });
+  return { template, nums };
+}
+
+// Reconstruct a path string from a template and interpolated numbers
+function buildPath(template, nums) {
+  let i = 0;
+  return template.replace(/\0/g, () => {
+    const val = nums[i++];
+    return val % 1 === 0 ? String(val) : val.toFixed(2);
+  });
+}
+
 /**
  * Attr Effect — animates numeric SVG/DOM attributes directly.
  *
- * Simple attributes: each animatedAttr key maps to one element attribute.
+ * Numeric attributes:
  *   new Attr({ animatedAttrs: { x1: 100, y1: 200 } }, { selector: "#myLine", duration: 500 })
  *
- * Composite attributes: sub-keys are interpolated and combined into one attribute string.
- *   new Attr({ animatedAttrs: { viewBox: { minX: 0, minY: 0, width: 800, height: 600 } } }, ...)
+ * Path (string) attributes — animates all numbers in the path string:
+ *   new Attr(
+ *     { animatedAttrs: { d: "M 200,50 C 200,150 300,150 300,250" } },
+ *     { selector: "#myPath", duration: 1000 }
+ *   )
+ *   Both start and end paths must have the same command structure (same letters, same number count).
  *
- * Follows CSSEffect's pattern: onProgress receives the easing-applied ms from MC,
- * fraction is computed as ms / duration.
+ * Composite attributes:
+ *   new Attr({ animatedAttrs: { viewBox: { minX: 0, minY: 0, width: 800, height: 600 } } }, ...)
  */
 export default class Attr extends Effect {
   onGetContext() {
@@ -41,6 +67,27 @@ export default class Attr extends Effect {
       }
     }
     this._svgAttr = ATTR_MAP[this.attributeKey] || this.attributeKey;
+
+    // Detect path (string) mode
+    this._isPath = typeof this.targetValue === "string";
+    if (this._isPath) {
+      const initial = typeof this.initialValue === "string"
+        ? this.initialValue
+        : (this.element.getAttribute(this._svgAttr) || "");
+
+      this._pathStart = parsePath(initial);
+      this._pathEnd = parsePath(this.targetValue);
+
+      if (this._pathStart.nums.length !== this._pathEnd.nums.length) {
+        this._pathError = true;
+        if (typeof console !== "undefined") {
+          console.error(
+            `[mc-attr] Path interpolation error: start path has ${this._pathStart.nums.length} numbers, ` +
+            `end path has ${this._pathEnd.nums.length}. They must match. Attribute: "${this._svgAttr}".`
+          );
+        }
+      }
+    }
   }
 
   getScratchValue() {
@@ -48,18 +95,35 @@ export default class Attr extends Effect {
       return this._getCompositePartValue();
     }
     const raw = this.element.getAttribute(this._svgAttr);
+    if (this._isPath || typeof this.targetValue === "string") {
+      return raw || "";
+    }
     return parseFloat(raw) || 0;
   }
 
   onProgress(ms) {
     const f = ms / this.props.duration;
-    const value = this.initialValue + (this.targetValue - this.initialValue) * f;
 
-    if (this._compositeInfo) {
-      this._setCompositePartValue(value);
-    } else {
-      this.element.setAttribute(this._svgAttr, value);
+    // Path (string) mode
+    if (this._isPath) {
+      if (this._pathError) return; // non-breaking: just don't animate
+      const startNums = this._pathStart.nums;
+      const endNums = this._pathEnd.nums;
+      const interpolated = startNums.map((s, i) => s + (endNums[i] - s) * f);
+      this.element.setAttribute(this._svgAttr, buildPath(this._pathEnd.template, interpolated));
+      return;
     }
+
+    // Composite mode
+    if (this._compositeInfo) {
+      const value = this.initialValue + (this.targetValue - this.initialValue) * f;
+      this._setCompositePartValue(value);
+      return;
+    }
+
+    // Simple numeric mode
+    const value = this.initialValue + (this.targetValue - this.initialValue) * f;
+    this.element.setAttribute(this._svgAttr, value);
   }
 
   // ─── Composite helpers ──────────────────────────────────────────────────────

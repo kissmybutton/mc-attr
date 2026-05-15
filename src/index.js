@@ -5,11 +5,15 @@ const { name, version } = pkg;
 
 // Simple numeric attributes — all accept a single number
 const numericRule = { type: "number", optional: true };
+const stringRule = { type: "string", optional: true };
 
 const attrValidationRules = {
   animatedAttrs: {
     type: "object",
     props: {
+      // ── SVG path (string interpolation) ─────────────────────────────
+      d: stringRule,
+
       // ── SVG geometry ────────────────────────────────────────────────
       x: numericRule,
       y: numericRule,
