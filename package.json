@@ -1,6 +1,6 @@
 {
   "name": "@kissmybutton/mc-attr",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "MotorCortex Effect plugin for animating SVG and DOM element attributes",
   "main": "dist/bundle.cjs.js",
   "module": "dist/bundle.esm.js",
