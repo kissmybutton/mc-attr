@@ -18,15 +18,13 @@ const COMPOSITES = {
   strokeDasharray: { svgName: "stroke-dasharray", parts: ["dash", "gap"], separator: " " },
 };
 
-// Regex to extract all numbers from a path string
-const PATH_NUM_RE = /-?[\d.]+(?:e[+-]?\d+)?/gi;
-
 // Extract the "template" (letters + structure) and numbers from a path string
 function parsePath(d) {
   const nums = [];
-  const template = d.replace(PATH_NUM_RE, (match) => {
+  const re = /-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/g;
+  const template = d.replace(re, (match) => {
     nums.push(parseFloat(match));
-    return "\0";
+    return "\x00";
   });
   return { template, nums };
 }
@@ -34,8 +32,10 @@ function parsePath(d) {
 // Reconstruct a path string from a template and interpolated numbers
 function buildPath(template, nums) {
   let i = 0;
-  return template.replace(/\0/g, () => {
+  return template.replace(/\x00/g, () => {
+    if (i >= nums.length) return "0";
     const val = nums[i++];
+    if (isNaN(val)) return "0";
     return val % 1 === 0 ? String(val) : val.toFixed(2);
   });
 }
