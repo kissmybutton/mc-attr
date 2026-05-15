@@ -39,6 +39,20 @@ const clip = new HTMLClip({
     <circle id="dashCirc" cx="400" cy="250" r="100"
             fill="none" stroke="#7209b7" stroke-width="2"
             stroke-dasharray="20 10" stroke-dashoffset="0" opacity="0"/>
+
+    <!-- Bezier path that morphs -->
+    <path id="bezier1" d="M 50,450 C 50,350 200,350 200,450"
+          fill="none" stroke="#f59e0b" stroke-width="3" opacity="0"/>
+
+    <!-- Connection-style path (flowchart arrow simulation) -->
+    <path id="connPath" d="M 500,400 C 500,430 600,430 600,460"
+          fill="none" stroke="#06b6d4" stroke-width="2" opacity="0"
+          marker-end="url(#arrowM)"/>
+    <defs>
+      <marker id="arrowM" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#06b6d4"/>
+      </marker>
+    </defs>
   </svg>`,
   containerParams: { width: "800px", height: "500px" },
 });
@@ -206,6 +220,51 @@ clip.addIncident(
     { selector: "#line1", duration: 500, easing: "easeInOutCubic" },
   ),
   3500,
+);
+
+// 9. Bezier path morph — curve reshapes
+clip.addIncident(
+  new McAttr.Attr(
+    { animatedAttrs: { opacity: 1 } },
+    { selector: "#bezier1", duration: 300 },
+  ),
+  500,
+);
+clip.addIncident(
+  new McAttr.Attr(
+    {
+      animatedAttrs: { d: "M 50,450 C 150,250 350,250 500,450" },
+      initialValues: { d: "M 50,450 C 50,350 200,350 200,450" },
+    },
+    { selector: "#bezier1", duration: 2000, easing: "easeInOutCubic" },
+  ),
+  800,
+);
+clip.addIncident(
+  new McAttr.Attr(
+    { animatedAttrs: { d: "M 50,450 C 250,100 550,400 750,200" } },
+    { selector: "#bezier1", duration: 2000, easing: "easeInOutCubic" },
+  ),
+  3000,
+);
+
+// 10. Connection path — simulates flowchart arrow moving between positions
+clip.addIncident(
+  new McAttr.Attr(
+    { animatedAttrs: { opacity: 1 } },
+    { selector: "#connPath", duration: 300 },
+  ),
+  1000,
+);
+clip.addIncident(
+  new McAttr.Attr(
+    {
+      animatedAttrs: { d: "M 700,350 C 700,400 750,400 750,450" },
+      initialValues: { d: "M 500,400 C 500,430 600,430 600,460" },
+    },
+    { selector: "#connPath", duration: 1500, easing: "easeInOutCubic" },
+  ),
+  2000,
 );
 
 // ── Player ───────────────────────────────────────────────────────────────────
