@@ -34,7 +34,7 @@
     "@donkeyclip/motorcortex": ">=9.0.0"
   },
   "devDependencies": {
-    "@babel/cli": "^7.25.0",
+    "@babel/cli": "^8.0.4",
     "@babel/core": "^7.25.0",
     "@babel/plugin-syntax-jsx": "^7.24.0",
     "@babel/plugin-transform-react-jsx": "^7.25.0",
